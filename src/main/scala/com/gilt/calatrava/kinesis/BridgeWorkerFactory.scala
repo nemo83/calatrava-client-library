@@ -22,13 +22,24 @@ class BridgeWorkerFactory @Inject() (calatravaEventProcessor: CalatravaEventProc
   private[this] val workerId = s"${InetAddress.getLocalHost.getCanonicalHostName}:${UUID.randomUUID()}"
 
   def instance() = new Worker(
-    new RecordProcessorFactory(calatravaEventProcessor, s3Client, bridgeConfiguration.bucketName),
+    createRecordProcessorFactory(),
+    createKinesisClientLibConfiguration(),
+    createMetricsFactory())
 
+  private[this] def createRecordProcessorFactory() =
+    new RecordProcessorFactory(calatravaEventProcessor, s3Client, bridgeConfiguration.bucketName)
+
+  private[this] def createKinesisClientLibConfiguration() =
     new KinesisClientLibConfiguration(bridgeConfiguration.clientAppName, bridgeConfiguration.streamName, credentialsProvider, workerId)
-      .withInitialPositionInStream(InitialPositionInStream.TRIM_HORIZON),
+      .withInitialPositionInStream(InitialPositionInStream.TRIM_HORIZON)
 
+  private[this] def createMetricsFactory() =
     bridgeConfiguration.metricsConfigOpt map { metricsConfig =>
-      new CWMetricsFactory(credentialsProvider, metricsConfig.metricsNamespace, metricsConfig.metricsBufferTimeMillis, metricsConfig.metricsBufferSize)
+      new CWMetricsFactory(
+        credentialsProvider,
+        metricsConfig.metricsNamespace,
+        metricsConfig.metricsBufferTimeMillis,
+        metricsConfig.metricsBufferSize)
     } getOrElse new NullMetricsFactory
-  )
+
 }

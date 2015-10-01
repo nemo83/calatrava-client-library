@@ -12,7 +12,6 @@ import play.api.libs.json.Json
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import scala.util.Try
 
 private[kinesis] class RecordProcessor(sinkEventProcessor: SinkEventProcessor) extends IRecordProcessor with Loggable {
 
@@ -36,11 +35,16 @@ private[kinesis] class RecordProcessor(sinkEventProcessor: SinkEventProcessor) e
     val events = records.asScala flatMap convertRecord
     if (events.size == records.size()) {
 
-      events foreach sinkEventProcessor.processEvent
+      try {
+        events foreach sinkEventProcessor.processEvent
 
-      if (System.currentTimeMillis() > nextCheckpointTimeMillis) {
-        checkpoint(iRecordProcessorCheckpointer)
-        nextCheckpointTimeMillis = System.currentTimeMillis() + CheckpointIntervalInMillis
+        if (System.currentTimeMillis() > nextCheckpointTimeMillis) {
+          checkpoint(iRecordProcessorCheckpointer)
+          nextCheckpointTimeMillis = System.currentTimeMillis() + CheckpointIntervalInMillis
+        }
+      } catch {
+        case e: Exception =>
+          warn(s"Failed to process events $events", e)
       }
     } else {
       warn("Failed to parse records into SinkEvent objects.")

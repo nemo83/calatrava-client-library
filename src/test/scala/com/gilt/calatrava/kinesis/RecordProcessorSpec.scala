@@ -38,6 +38,13 @@ class RecordProcessorSpec extends WordSpec with MockitoSugar with BeforeAndAfter
       verify(mockCheckpointer, times(1)).checkpoint()
     }
 
+    "does not checkpoint if the events cannot be processed" in {
+      when(mockListener.processEvent(any[SinkEvent])).thenThrow(new RuntimeException("Boom!"))
+
+      processor.processRecords(makeRecords(makeValidRecord("123")), mockCheckpointer)
+      verify(mockCheckpointer, never()).checkpoint()
+    }
+
     "do a checkpoint when shutdown on exit" in {
       processor.shutdown(mockCheckpointer, ShutdownReason.TERMINATE)
       verify(mockCheckpointer, times(1)).checkpoint()
