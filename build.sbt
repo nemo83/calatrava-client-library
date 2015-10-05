@@ -50,19 +50,9 @@ lazy val releaseSettings = Seq(
               </scm>
               <developers>
                 <developer>
-                  <id>gheine</id>
-                  <name>Gregor Heine</name>
-                  <url>https://github.com/gheine</url>
-                </developer>
-                <developer>
-                  <id>ebowman</id>
-                  <name>Eric Bowman</name>
-                  <url>https://github.com/ebowman</url>
-                </developer>
-                <developer>
-                  <id>andreyk0</id>
-                  <name>Andrey Kartashov</name>
-                  <url>https://github.com/andreyk0</url>
+                  <id>vdumitrescu</id>
+                  <name>Val Dumitrescu</name>
+                  <url>https://github.com/vdumitrescu</url>
                 </developer>
               </developers>
 )
