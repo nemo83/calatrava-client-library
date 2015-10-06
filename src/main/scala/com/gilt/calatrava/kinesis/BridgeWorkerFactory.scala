@@ -11,7 +11,7 @@ import com.amazonaws.services.s3.AmazonS3Client
 
 @Singleton
 class BridgeWorkerFactory @Inject() (calatravaEventProcessor: CalatravaEventProcessor,
-                                     bridgeConfiguration: BridgeConfiguration) {
+                                     bridgeConfiguration: BridgeConfiguration) extends WorkerFactory {
 
   private[this] val credentialsProvider = bridgeConfiguration.iamRoleArnOpt map { iamRoleArn =>
     new STSAssumeRoleSessionCredentialsProvider(iamRoleArn, bridgeConfiguration.clientAppName)
@@ -21,7 +21,7 @@ class BridgeWorkerFactory @Inject() (calatravaEventProcessor: CalatravaEventProc
 
   private[this] val workerId = s"${InetAddress.getLocalHost.getCanonicalHostName}:${UUID.randomUUID()}"
 
-  def instance() = new Worker(
+  override def instance() = new Worker(
     createRecordProcessorFactory(),
     createKinesisClientLibConfiguration(),
     createMetricsFactory())
