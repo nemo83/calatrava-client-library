@@ -38,7 +38,8 @@ library will not send metrics to CloudWatch.
 An implementation of this interface must be constructed and passed to the Worker
 factory, so that events are being sent here for processing. Has only one method,
 `processEvent`, which takes a parameter of type `ChangeEvent`, as defined in the
-[Calatrava API](https://github.com/gilt/calatrava/blob/master/api/api.json).
+[Calatrava API](https://github.com/gilt/calatrava/blob/master/api/api.json). It
+must return `true` if the event was successfully processed, `false` otherwise.
 
 ### Worker Factory
 

@@ -33,12 +33,13 @@ class RecordProcessorSpec extends WordSpec with MockitoSugar with BeforeAndAfter
     }
 
     "process records that can be parsed as SinkEvents" in {
+      when(mockListener.processEvent(any[SinkEvent])).thenReturn(true)
       processor.processRecords(makeRecords(makeValidRecord("123"), makeValidRecord("234")), mockCheckpointer)
       verify(mockListener, times(2)).processEvent(any[SinkEvent])
       verify(mockCheckpointer, times(1)).checkpoint()
     }
 
-    "does not checkpoint if the events cannot be processed" in {
+    "not checkpoint if the events cannot be processed" in {
       when(mockListener.processEvent(any[SinkEvent])).thenThrow(new RuntimeException("Boom!"))
 
       processor.processRecords(makeRecords(makeValidRecord("123")), mockCheckpointer)

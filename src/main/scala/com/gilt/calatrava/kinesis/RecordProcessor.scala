@@ -36,9 +36,9 @@ private[kinesis] class RecordProcessor(sinkEventProcessor: SinkEventProcessor) e
     if (events.size == records.size()) {
 
       try {
-        events foreach sinkEventProcessor.processEvent
+        val allGood = events forall sinkEventProcessor.processEvent
 
-        if (System.currentTimeMillis() > nextCheckpointTimeMillis) {
+        if (allGood && System.currentTimeMillis() > nextCheckpointTimeMillis) {
           checkpoint(iRecordProcessorCheckpointer)
           nextCheckpointTimeMillis = System.currentTimeMillis() + CheckpointIntervalInMillis
         }
