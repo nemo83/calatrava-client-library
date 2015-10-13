@@ -5,6 +5,7 @@ import java.util.UUID
 import javax.inject.{Inject, Singleton}
 
 import com.amazonaws.auth.{DefaultAWSCredentialsProviderChain, STSAssumeRoleSessionCredentialsProvider}
+import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker.Builder
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.{InitialPositionInStream, KinesisClientLibConfiguration, Worker}
 import com.amazonaws.services.kinesis.metrics.impl.{CWMetricsFactory, NullMetricsFactory}
 import com.amazonaws.services.s3.AmazonS3Client
@@ -21,10 +22,11 @@ class BridgeWorkerFactory @Inject() (calatravaEventProcessor: CalatravaEventProc
 
   private[this] val workerId = s"${InetAddress.getLocalHost.getCanonicalHostName}:${UUID.randomUUID()}"
 
-  override def instance() = new Worker(
-    createRecordProcessorFactory(),
-    createKinesisClientLibConfiguration(),
-    createMetricsFactory())
+  override def instance() = new Worker.Builder()
+    .recordProcessorFactory(createRecordProcessorFactory())
+    .config(createKinesisClientLibConfiguration())
+    .metricsFactory(createMetricsFactory())
+    .build()
 
   private[this] def createRecordProcessorFactory() =
     new RecordProcessorFactory(calatravaEventProcessor, s3Client, bridgeConfiguration.bucketName)

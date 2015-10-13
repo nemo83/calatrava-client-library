@@ -1,7 +1,8 @@
 package com.gilt.calatrava.kinesis
 
-import com.amazonaws.services.kinesis.clientlibrary.interfaces.{IRecordProcessor, IRecordProcessorCheckpointer}
-import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownReason
+import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorCheckpointer
+import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessor
+import com.amazonaws.services.kinesis.clientlibrary.types.{ProcessRecordsInput, ShutdownInput, InitializationInput, ShutdownReason}
 import com.amazonaws.services.kinesis.model.Record
 import com.fasterxml.jackson.core.JsonParseException
 import com.gilt.calatrava.v0.models.SinkEvent
@@ -17,29 +18,29 @@ private[kinesis] class RecordProcessor(sinkEventProcessor: SinkEventProcessor) e
 
   private[this] var shardId: String = _
   private[this] var nextCheckpointTimeMillis: Long = -1
-  private[kinesis] val CheckpointIntervalInMillis = 1000L
+  private[kinesis] val CheckpointIntervalInMillis = 60000L
 
-  override def initialize(shardId: String): Unit = {
-    this.shardId = shardId
+  override def initialize (initializationInput: InitializationInput): Unit = {
+    shardId = initializationInput.getShardId
     info(s"Record Processor created for shard $shardId.")
   }
 
-  override def shutdown(iRecordProcessorCheckpointer: IRecordProcessorCheckpointer, shutdownReason: ShutdownReason): Unit = {
-    if (shutdownReason == ShutdownReason.TERMINATE) {
-      checkpoint(iRecordProcessorCheckpointer)
+  override def shutdown(shutdownInput: ShutdownInput): Unit = {
+    if (shutdownInput.getShutdownReason == ShutdownReason.TERMINATE) {
+      checkpoint(shutdownInput.getCheckpointer)
     }
     info(s"Record Processor stopped for shard $shardId.")
   }
 
-  override def processRecords(records: java.util.List[Record], iRecordProcessorCheckpointer: IRecordProcessorCheckpointer): Unit = {
-    val events = records.asScala flatMap convertRecord
-    if (events.size == records.size()) {
+  override def processRecords(processRecordsInput: ProcessRecordsInput): Unit = {
+    val events = processRecordsInput.getRecords.asScala flatMap convertRecord
+    if (events.size == processRecordsInput.getRecords.size()) {
 
       try {
         val allGood = events forall sinkEventProcessor.processEvent
 
         if (allGood && System.currentTimeMillis() > nextCheckpointTimeMillis) {
-          checkpoint(iRecordProcessorCheckpointer)
+          checkpoint(processRecordsInput.getCheckpointer)
           nextCheckpointTimeMillis = System.currentTimeMillis() + CheckpointIntervalInMillis
         }
       } catch {
