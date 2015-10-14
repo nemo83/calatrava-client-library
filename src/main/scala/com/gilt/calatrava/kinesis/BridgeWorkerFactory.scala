@@ -5,7 +5,6 @@ import java.util.UUID
 import javax.inject.{Inject, Singleton}
 
 import com.amazonaws.auth.{DefaultAWSCredentialsProviderChain, STSAssumeRoleSessionCredentialsProvider}
-import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker.Builder
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.{InitialPositionInStream, KinesisClientLibConfiguration, Worker}
 import com.amazonaws.services.kinesis.metrics.impl.{CWMetricsFactory, NullMetricsFactory}
 import com.amazonaws.services.s3.AmazonS3Client
@@ -14,11 +13,14 @@ import com.amazonaws.services.s3.AmazonS3Client
 class BridgeWorkerFactory @Inject() (calatravaEventProcessor: CalatravaEventProcessor,
                                      bridgeConfiguration: BridgeConfiguration) extends WorkerFactory {
 
-  private[this] val credentialsProvider = bridgeConfiguration.iamRoleArnOpt map { iamRoleArn =>
+  private[this] val kinesisCredentialsProvider = bridgeConfiguration.iamRoleArnOpt map { iamRoleArn =>
     new STSAssumeRoleSessionCredentialsProvider(iamRoleArn, bridgeConfiguration.clientAppName)
   } getOrElse new DefaultAWSCredentialsProviderChain
 
-  private[this] val s3Client = new AmazonS3Client(credentialsProvider)
+  private[this] val dynamoCredentialsProvider = new DefaultAWSCredentialsProviderChain
+  private[this] val cloudWatchCredentialsProvider = new DefaultAWSCredentialsProviderChain
+
+  private[this] val s3Client = new AmazonS3Client(kinesisCredentialsProvider)
 
   private[this] val workerId = s"${InetAddress.getLocalHost.getCanonicalHostName}:${UUID.randomUUID()}"
 
@@ -32,13 +34,19 @@ class BridgeWorkerFactory @Inject() (calatravaEventProcessor: CalatravaEventProc
     new RecordProcessorFactory(calatravaEventProcessor, s3Client, bridgeConfiguration.bucketName)
 
   private[this] def createKinesisClientLibConfiguration() =
-    new KinesisClientLibConfiguration(bridgeConfiguration.clientAppName, bridgeConfiguration.streamName, credentialsProvider, workerId)
+    new KinesisClientLibConfiguration(
+      bridgeConfiguration.clientAppName,
+      bridgeConfiguration.streamName,
+      kinesisCredentialsProvider,
+      dynamoCredentialsProvider,
+      cloudWatchCredentialsProvider,
+      workerId)
       .withInitialPositionInStream(InitialPositionInStream.TRIM_HORIZON)
 
   private[this] def createMetricsFactory() =
     bridgeConfiguration.metricsConfigOpt map { metricsConfig =>
       new CWMetricsFactory(
-        credentialsProvider,
+        cloudWatchCredentialsProvider,
         metricsConfig.metricsNamespace,
         metricsConfig.metricsBufferTimeMillis,
         metricsConfig.metricsBufferSize)
