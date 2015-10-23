@@ -61,7 +61,7 @@ private[kinesis] class RecordProcessor(sinkEventProcessor: SinkEventProcessor) e
 
   private[this] def convertRecord(record: Record): Option[SinkEvent] =
     try {
-      Json.parse(new String(record.getData.array())).asOpt[SinkEvent]
+      Json.parse(new String(record.getData.array(), "UTF-8")).asOpt[SinkEvent]
     } catch {
       case e: JsonParseException =>
         None
