@@ -10,4 +10,9 @@ trait CalatravaEventProcessor {
    * @return        true, if successfully processed; false, otherwise
    */
   def processEvent(event: ChangeEvent): Boolean
+
+  /**
+    * Notification that a heart beat event was received
+    */
+  def processHeartBeat(): Unit
 }

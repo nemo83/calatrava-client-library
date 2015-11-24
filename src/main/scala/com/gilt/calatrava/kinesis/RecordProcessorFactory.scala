@@ -26,9 +26,18 @@ private[kinesis] class RecordProcessorFactory (calatravaEventProcessor: Calatrav
    * Create a SinkEventProcessor for Calatrava events capable to fetch large events from S3, as needed
    */
   private[kinesis] def createSinkEventProcessor() = new SinkEventProcessor {
+    private def processCalatravaEvent(event: ChangeEvent): Boolean = {
+      if (event.id == "__CALATRAVA_HEARTBEAT__") {
+        calatravaEventProcessor.processHeartBeat()
+        true
+      } else {
+        calatravaEventProcessor.processEvent(event)
+      }
+    }
+
     override def processEvent(event: SinkEvent): Boolean = (event.event, event.eventObjectKey) match {
-      case (Some(changeEvent), None) => calatravaEventProcessor.processEvent(changeEvent)
-      case (None, Some(objectKey)) => fetchChangeEvent(objectKey) exists calatravaEventProcessor.processEvent
+      case (Some(changeEvent), None) => processCalatravaEvent(changeEvent)
+      case (None, Some(objectKey)) => fetchChangeEvent(objectKey) exists processCalatravaEvent
       case _ =>
         warn(s"Ignoring invalid event $event")
         true
