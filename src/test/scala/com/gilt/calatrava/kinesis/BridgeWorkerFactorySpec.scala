@@ -1,8 +1,8 @@
 package com.gilt.calatrava.kinesis
 
-import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
-import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
+import org.scalatest.mock.MockitoSugar
+import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 
 class BridgeWorkerFactorySpec extends WordSpec with MockitoSugar with Matchers with BeforeAndAfterEach {
 

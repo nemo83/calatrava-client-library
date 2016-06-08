@@ -5,17 +5,15 @@ import java.io.InputStream
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.{IRecordProcessor, IRecordProcessorFactory}
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model.S3Object
-import com.gilt.calatrava.v0.models.json._
 import com.gilt.calatrava.v0.models.{ChangeEvent, SinkEvent}
 import com.gilt.gfc.logging.Loggable
 import com.gilt.gfc.util.Retry
-import play.api.libs.json.Json
 
 import scala.concurrent.duration._
 
-private[kinesis] class RecordProcessorFactory (calatravaEventProcessor: CalatravaEventProcessor,
-                              s3Client: AmazonS3Client,
-                              bucketName: String) extends IRecordProcessorFactory with Loggable {
+private[kinesis] class RecordProcessorFactory(calatravaEventProcessor: CalatravaEventProcessor,
+                                              s3Client: AmazonS3Client,
+                                              bucketName: String) extends IRecordProcessorFactory with Loggable {
 
   private[kinesis] val MaxRetryTimes = 10
   private[kinesis] val InitialDelay = 1.second
@@ -56,7 +54,7 @@ private[kinesis] class RecordProcessorFactory (calatravaEventProcessor: Calatrav
         s3Client.getObject(bucketName, objectKey)
       }(_ => ())
 
-      Json.parse(getObjectContent(s3Object)).asOpt[ChangeEvent]
+      Some(readChangeEvent(getObjectContent(s3Object)))
     } catch {
       case e: Exception =>
         warn(s"Failed to read and parse object with key $objectKey", e)

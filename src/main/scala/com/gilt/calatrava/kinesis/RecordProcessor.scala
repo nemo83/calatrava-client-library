@@ -2,14 +2,12 @@ package com.gilt.calatrava.kinesis
 
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorCheckpointer
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessor
-import com.amazonaws.services.kinesis.clientlibrary.types.{ProcessRecordsInput, ShutdownInput, InitializationInput, ShutdownReason}
+import com.amazonaws.services.kinesis.clientlibrary.types.{InitializationInput, ProcessRecordsInput, ShutdownInput, ShutdownReason}
 import com.amazonaws.services.kinesis.model.Record
-import com.fasterxml.jackson.core.JsonParseException
+import com.codahale.jerkson.ParsingException
 import com.gilt.calatrava.v0.models.SinkEvent
-import com.gilt.calatrava.v0.models.json._
 import com.gilt.gfc.logging.Loggable
 import com.gilt.gfc.util.Retry
-import play.api.libs.json.Json
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
@@ -61,9 +59,9 @@ private[kinesis] class RecordProcessor(sinkEventProcessor: SinkEventProcessor) e
 
   private[this] def convertRecord(record: Record): Option[SinkEvent] =
     try {
-      Json.parse(new String(record.getData.array(), "UTF-8")).asOpt[SinkEvent]
+      Some(readSinkEvent(new String(record.getData.array(), "UTF-8")))
     } catch {
-      case e: JsonParseException =>
+      case e: ParsingException =>
         None
     }
 }
