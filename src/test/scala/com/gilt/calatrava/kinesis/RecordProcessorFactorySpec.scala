@@ -6,13 +6,12 @@ import com.amazonaws.AmazonServiceException
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model.S3Object
 import com.gilt.calatrava.v0.models.{SinkEvent, ChangeEvent}
-import com.gilt.calatrava.v0.models.json._
-import org.joda.time.DateTime
+import org.joda.time.{DateTimeZone, DateTime}
+import org.joda.time.format.ISODateTimeFormat
 import org.mockito.Mockito._
 import org.mockito.Matchers.{any, anyString}
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
-import play.api.libs.json.Json
 
 import scala.concurrent.duration._
 
@@ -35,15 +34,27 @@ class RecordProcessorFactorySpec extends WordSpec with MockitoSugar with Matcher
   }
 
   val objectKey = "object-key"
-  val changeEvent = ChangeEvent("123", Some("12345"), Some(""), Some(""), new DateTime())
-  val changeEventJson = Json.toJson(changeEvent).toString()
+  val ts = new DateTime(DateTimeZone.UTC)
+  val changeEvent = ChangeEvent("123", Some("12345"), Some("before"), Some("after"), ts)
+  val changeEventJson =
+    s"""
+      |{
+      |  "id": "123",
+      |  "entity_key": "12345",
+      |  "before_json": "before",
+      |  "after_json": "after",
+      |  "timestamp": "${ISODateTimeFormat.dateTime().print(ts)}"
+      |}
+    """.stripMargin
 
   "fetchChangeEvent" must {
 
     "convert the S3 data into a ChangeEvent" in {
       val processorFactoryStub = new RecordProcessorFactoryStub(changeEventJson)
       when(mockS3Client.getObject(bucketName, objectKey)).thenReturn(mockS3Object)
-      processorFactoryStub.fetchChangeEvent(objectKey) should be(Some(changeEvent))
+      val actualEvent = processorFactoryStub.fetchChangeEvent(objectKey).get
+
+      actualEvent should be(changeEvent)
     }
 
     "retry exactly 3 times, with exponential delay, if S3 errors out" in {
