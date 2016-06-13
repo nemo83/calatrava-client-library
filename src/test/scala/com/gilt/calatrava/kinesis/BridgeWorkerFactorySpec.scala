@@ -24,6 +24,7 @@ class BridgeWorkerFactorySpec extends WordSpec with MockitoSugar with Matchers w
     when(mockConfiguration.bucketName).thenReturn(bucketName)
     when(mockConfiguration.streamName).thenReturn(streamName)
 
+    when(mockMetricsConfig.cloudwatchIamRoleArnOpt).thenReturn(None)
     when(mockMetricsConfig.metricsNamespace).thenReturn(metricsNamespace)
     when(mockMetricsConfig.metricsBufferTimeMillis).thenReturn(metricsBufferTimeMillis)
     when(mockMetricsConfig.metricsBufferSize).thenReturn(metricsBufferSize)
@@ -33,7 +34,8 @@ class BridgeWorkerFactorySpec extends WordSpec with MockitoSugar with Matchers w
 
     "create a Worker with DefaultAWSCredentialsProviderChain if no IAM Role Arn provided" in {
 
-      when(mockConfiguration.iamRoleArnOpt).thenReturn(None)
+      when(mockConfiguration.kinesisIamRoleArnOpt).thenReturn(None)
+      when(mockConfiguration.dynamoIamRoleArnOpt).thenReturn(None)
       when(mockConfiguration.metricsConfigOpt).thenReturn(None)
 
       val worker = new BridgeWorkerFactory(mockEventProcessor, mockConfiguration).instance()
@@ -42,7 +44,8 @@ class BridgeWorkerFactorySpec extends WordSpec with MockitoSugar with Matchers w
     }
 
     "create a Worker with STS credentials provider if an IAM Role Arn is provided" in {
-      when(mockConfiguration.iamRoleArnOpt).thenReturn(Some("arn:fake:value"))
+      when(mockConfiguration.kinesisIamRoleArnOpt).thenReturn(Some("arn:fake:value"))
+      when(mockConfiguration.dynamoIamRoleArnOpt).thenReturn(None)
       when(mockConfiguration.metricsConfigOpt).thenReturn(None)
 
       val worker = new BridgeWorkerFactory(mockEventProcessor, mockConfiguration).instance()
@@ -51,7 +54,8 @@ class BridgeWorkerFactorySpec extends WordSpec with MockitoSugar with Matchers w
     }
 
     "create a Worker reporting metrics to CloudWatch, if so configured" in {
-      when(mockConfiguration.iamRoleArnOpt).thenReturn(None)
+      when(mockConfiguration.kinesisIamRoleArnOpt).thenReturn(None)
+      when(mockConfiguration.dynamoIamRoleArnOpt).thenReturn(None)
       when(mockConfiguration.metricsConfigOpt).thenReturn(Some(mockMetricsConfig))
 
       val worker = new BridgeWorkerFactory(mockEventProcessor, mockConfiguration).instance()

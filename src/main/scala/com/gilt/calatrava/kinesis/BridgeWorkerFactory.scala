@@ -13,12 +13,13 @@ import com.amazonaws.services.s3.AmazonS3Client
 class BridgeWorkerFactory @Inject() (calatravaEventProcessor: CalatravaEventProcessor,
                                      bridgeConfiguration: BridgeConfiguration) extends WorkerFactory {
 
-  private[this] val kinesisCredentialsProvider = bridgeConfiguration.iamRoleArnOpt map { iamRoleArn =>
+  private[this] def getCredentialsProvider(iamRoleArnOpt: Option[String]) = iamRoleArnOpt map { iamRoleArn =>
     new STSAssumeRoleSessionCredentialsProvider(iamRoleArn, bridgeConfiguration.clientAppName)
   } getOrElse new DefaultAWSCredentialsProviderChain
 
-  private[this] val dynamoCredentialsProvider = new DefaultAWSCredentialsProviderChain
-  private[this] val cloudWatchCredentialsProvider = new DefaultAWSCredentialsProviderChain
+  private[this] val kinesisCredentialsProvider = getCredentialsProvider(bridgeConfiguration.kinesisIamRoleArnOpt)
+  private[this] val dynamoCredentialsProvider = getCredentialsProvider(bridgeConfiguration.dynamoIamRoleArnOpt)
+  private[this] val cloudWatchCredentialsProvider = getCredentialsProvider(bridgeConfiguration.metricsConfigOpt.flatMap(_.cloudwatchIamRoleArnOpt))
 
   private[this] val s3Client = new AmazonS3Client(kinesisCredentialsProvider)
 
