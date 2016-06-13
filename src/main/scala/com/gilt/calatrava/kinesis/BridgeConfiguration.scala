@@ -6,13 +6,15 @@ package com.gilt.calatrava.kinesis
  * @param clientAppName             a name for this application, must be unique for this Bridge
  * @param streamName                the name of the Kinesis stream associated with the Bridge
  * @param bucketName                the name of the S3 bucket where the Bridge stores large events
- * @param iamRoleArnOpt             the name of an IAM role that this application can assume to get access to AWS
+ * @param kinesisIamRoleArnOpt      the name of an IAM role that this application can assume to get access to AWS Kinesis
+ * @param dynamoIamRoleArnOpt       the name of an IAM role that this application can assume to get access to AWS Dynamo
  * @param metricsConfigOpt          optional configuration for CloudWatch metrics factory
  */
 case class BridgeConfiguration(clientAppName: String,
                                streamName: String,
                                bucketName: String,
-                               iamRoleArnOpt: Option[String],
+                               kinesisIamRoleArnOpt: Option[String],
+                               dynamoIamRoleArnOpt: Option[String],
                                metricsConfigOpt: Option[MetricsConfiguration])
 
 /**
@@ -21,11 +23,13 @@ case class BridgeConfiguration(clientAppName: String,
  * For detailed information on KCL metrics, see
  * http://docs.aws.amazon.com/kinesis/latest/dev/monitoring-with-kcl.html
  *
+ * @param cloudwatchIamRoleArnOpt   the name of an IAM role that this application can assume to get access to AWS CloudWatch
  * @param metricsNamespace          the namespace under which the metrics will appear in the CloudWatch console
  * @param metricsBufferTimeMillis   time to buffer metrics before publishing to CloudWatch
  * @param metricsBufferSize         maximum number of metrics that we can have in a queue
  */
-case class MetricsConfiguration(metricsNamespace: String,
+case class MetricsConfiguration(cloudwatchIamRoleArnOpt: Option[String],
+                                metricsNamespace: String,
                                 metricsBufferTimeMillis: Long,
                                 metricsBufferSize: Int)
 
