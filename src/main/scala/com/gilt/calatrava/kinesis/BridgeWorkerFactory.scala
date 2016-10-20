@@ -4,24 +4,21 @@ import java.net.InetAddress
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 
-import com.amazonaws.auth.{DefaultAWSCredentialsProviderChain, STSAssumeRoleSessionCredentialsProvider}
+import com.amazonaws.auth.{AWSCredentialsProvider, DefaultAWSCredentialsProviderChain, STSAssumeRoleSessionCredentialsProvider}
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.{InitialPositionInStream, KinesisClientLibConfiguration, Worker}
 import com.amazonaws.services.kinesis.metrics.impl.{CWMetricsFactory, NullMetricsFactory}
 import com.amazonaws.services.s3.AmazonS3Client
 
 @Singleton
-class BridgeWorkerFactory @Inject() (calatravaEventProcessor: CalatravaEventProcessor,
-                                     bridgeConfiguration: BridgeConfiguration) extends WorkerFactory {
+class BridgeWorkerFactory @Inject()(calatravaEventProcessor: CalatravaEventProcessor,
+                                    bridgeConfiguration: BridgeConfiguration) extends WorkerFactory {
 
-  private[this] def getCredentialsProvider(iamRoleArnOpt: Option[String]) = iamRoleArnOpt map { iamRoleArn =>
-    new STSAssumeRoleSessionCredentialsProvider(iamRoleArn, bridgeConfiguration.clientAppName)
-  } getOrElse new DefaultAWSCredentialsProviderChain
+  private[this] def getCredentialsProvider(iamRoleArnOpt: Option[String]) =
+    iamRoleArnOpt.fold[AWSCredentialsProvider](new DefaultAWSCredentialsProviderChain)(iamRoleArn => new STSAssumeRoleSessionCredentialsProvider(iamRoleArn, bridgeConfiguration.clientAppName))
 
-  private[this] val kinesisCredentialsProvider = getCredentialsProvider(bridgeConfiguration.kinesisIamRoleArnOpt)
-  private[this] val dynamoCredentialsProvider = getCredentialsProvider(bridgeConfiguration.dynamoIamRoleArnOpt)
   private[this] val cloudWatchCredentialsProvider = getCredentialsProvider(bridgeConfiguration.metricsConfigOpt.flatMap(_.cloudwatchIamRoleArnOpt))
 
-  private[this] val s3Client = new AmazonS3Client(kinesisCredentialsProvider)
+  private[this] val s3Client = new AmazonS3Client(bridgeConfiguration.kinesisCredentialsProvider)
 
   private[this] val workerId = s"${InetAddress.getLocalHost.getCanonicalHostName}:${UUID.randomUUID()}"
 
@@ -38,8 +35,8 @@ class BridgeWorkerFactory @Inject() (calatravaEventProcessor: CalatravaEventProc
     new KinesisClientLibConfiguration(
       bridgeConfiguration.clientAppName,
       bridgeConfiguration.streamName,
-      kinesisCredentialsProvider,
-      dynamoCredentialsProvider,
+      bridgeConfiguration.kinesisCredentialsProvider,
+      bridgeConfiguration.dynamoCredentialsProvider,
       cloudWatchCredentialsProvider,
       workerId)
       .withInitialPositionInStream(InitialPositionInStream.TRIM_HORIZON)
